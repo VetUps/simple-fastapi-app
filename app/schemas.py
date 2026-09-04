@@ -30,3 +30,11 @@ class UserLogin(UserBase):
 class UserResponse(BaseModel):
     user_email: EmailStr
     user_created_at: datetime
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    user_id: int
+    user_email: EmailStr
