@@ -24,6 +24,9 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     pass
 
+class UserLogin(UserBase):
+    pass
+
 class UserResponse(BaseModel):
     user_email: EmailStr
     user_created_at: datetime
