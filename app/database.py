@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from app.config import settings
 
-DATABASE_URL = f"postgresql+psycopg://postgres:1234@localhost:5432/simple_fastapi_app"
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(str(settings.DATABASE_URL), echo=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

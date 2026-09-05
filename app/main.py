@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from .routers import posts, users, auth
-from .database import engine
-from . import models
+
+from app.routers import posts, users, auth
+from app.database import engine
+from app import models
 
 app = FastAPI()
 app.include_router(posts.router)

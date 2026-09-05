@@ -1,6 +1,9 @@
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-from . import schemas
+from sqlalchemy.orm import Session
+
+from app import schemas, models, database
+from app.config import settings
 
 import datetime
 from datetime import timedelta
@@ -8,29 +11,26 @@ from datetime import timedelta
 import jwt
 from jwt.exceptions import InvalidTokenError
 
-ouath2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
-# Потом перегенерирую и уберу в .env :D
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ouath2_schema = OAuth2PasswordBearer(tokenUrl="login")
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
+        expire = datetime.datetime.now() + expires_delta
     else:
-        expire = datetime.datetime.now(datetime.timezone.utc) + timedelta(minutes=15)
+        expire = datetime.datetime.now() + timedelta(minutes=15)
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
     return encoded_jwt
 
 def verify_access_token(token: str, credentials_exception: HTTPException):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithm=ALGORITHM)
+        print(f"{token}")
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
         user_id = payload.get("user_id")
         user_email = payload.get("user_email")
@@ -40,14 +40,17 @@ def verify_access_token(token: str, credentials_exception: HTTPException):
         token_data = schemas.TokenData(**payload)
 
         return token_data
-    except InvalidTokenError:
+    except InvalidTokenError as e:
         raise credentials_exception
 
-def get_current_user(token: str = Depends(ouath2_schema)):
+def get_current_user(token: str = Depends(ouath2_schema), db: Session = Depends(database.get_db)) -> models.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Couldn`t validate credentials",
         headers={"WWW-Authenticate": "Bearer"}
         )
 
-    return verify_access_token(token, credentials_exception)
+    token_data = verify_access_token(token, credentials_exception)
+    user_id = token_data.user_id
+
+    return db.query(models.User).where(models.User.user_id == user_id).first()

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from pwdlib import PasswordHash
 from typing import Any
 
-from . import models
+from app import models
 
 
 password_hasher = PasswordHash.recommended()
