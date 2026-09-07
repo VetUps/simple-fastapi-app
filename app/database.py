@@ -4,10 +4,10 @@ from app.config import settings
 
 engine = create_engine(str(settings.DATABASE_URL), echo=True)
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False)
+session_factory = sessionmaker(bind=engine, autoflush=False)
 
 def get_db():
-    db = SessionLocal()
+    db = session_factory()
 
     try:
         yield db

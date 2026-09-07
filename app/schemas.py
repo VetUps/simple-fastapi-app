@@ -37,5 +37,14 @@ class PostUpdate(PostBase):
     pass
 
 class PostResponse(PostBase):
+    post_id: int
     user: UserResponse
     post_created_at: datetime
+
+class PostResponseWithVotes(BaseModel):
+    Post: PostResponse
+    votes: int
+
+class Vote(BaseModel):
+    user_id: int
+    post_id: int

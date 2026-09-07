@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql.expression import text
-from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, ForeignKey, PrimaryKeyConstraint
 
 class Base(DeclarativeBase):
     pass
@@ -24,3 +24,9 @@ class User(Base):
     user_email = Column(String, nullable=False, unique=True)
     user_password = Column(String, nullable=False)
     user_created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+
+class Vote(Base):
+    __tablename__ = "votes"
+
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False, primary_key=True)
