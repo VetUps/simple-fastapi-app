@@ -9,6 +9,7 @@ app.include_router(posts.router)
 app.include_router(users.router)
 app.include_router(auth.router)
 
+# models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 @app.get("/")

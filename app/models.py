@@ -1,32 +1,40 @@
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql.expression import text
-from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy import ForeignKey
+
+from typing import Annotated
+from datetime import datetime
+
+intpk = Annotated[int, mapped_column(primary_key=True)]
+created_at = Annotated[datetime, mapped_column(server_default=text("now()"))]
+updated_at = Annotated[datetime, mapped_column(server_default=text("now()"), server_onupdate=text("now()"))]
 
 class Base(DeclarativeBase):
     pass
 
-class Post(Base):
-    __tablename__ = "posts"
-
-    post_id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    post_title = Column(String, nullable=False)
-    post_content = Column(String, nullable=False)
-    post_published = Column(Boolean, nullable=False, server_default=text('True'))
-    post_created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
-
-    user = relationship("User")
-
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_email = Column(String, nullable=False, unique=True)
-    user_password = Column(String, nullable=False)
-    user_created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+    user_id: Mapped[intpk]
+    user_email: Mapped[str] = mapped_column(unique=True)
+    user_password: Mapped[str]
+    user_created_at: Mapped[created_at]
+    user_updated_at: Mapped[updated_at]
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    post_id: Mapped[intpk]
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
+    post_title: Mapped[str]
+    post_content: Mapped[str]
+    post_published: Mapped[bool] = mapped_column(server_default="True")
+    post_created_at: Mapped[created_at]
+
+    user: Mapped[User] = relationship("User")
 
 class Vote(Base):
     __tablename__ = "votes"
 
-    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, primary_key=True)
-    post_id = Column(Integer, ForeignKey("posts.post_id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
