@@ -4,7 +4,6 @@ from typing import Any
 
 from app import models
 
-
 password_hasher = PasswordHash.recommended()
 
 def hash_password(password: str) -> Any:

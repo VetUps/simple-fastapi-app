@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.database import get_db
-from app.utils import auth_user
+from app.security import auth_user
 from app.oauth2 import create_access_token
 from app.config import settings
 from app import schemas
