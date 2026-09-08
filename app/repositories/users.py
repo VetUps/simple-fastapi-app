@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, insert
+from sqlalchemy import select
 
 from app import models
 
@@ -33,7 +33,7 @@ class UserRepository:
             .where(models.User.user_email == user_email)
         )
 
-        result = db.execute(query).one_or_none()
+        result = db.execute(query).scalar_one_or_none()
         return result
 
     @staticmethod

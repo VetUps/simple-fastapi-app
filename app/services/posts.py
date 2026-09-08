@@ -33,7 +33,7 @@ class PostSerivce:
         post_to_delete = PostRepository.get_by_id(db, post_id)
 
         if post_to_delete is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {id} was not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
 
         if post_to_delete.user_id != current_user.user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"not authorized to perform requested action")
