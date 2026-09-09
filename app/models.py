@@ -2,7 +2,7 @@ from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql.expression import text
 from sqlalchemy import ForeignKey
 
-from typing import Annotated
+from typing import Annotated, List
 from datetime import datetime
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
@@ -21,6 +21,12 @@ class User(Base):
     user_created_at: Mapped[created_at]
     user_updated_at: Mapped[updated_at]
 
+class Vote(Base):
+    __tablename__ = "votes"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
+    
 class Post(Base):
     __tablename__ = "posts"
 
@@ -32,9 +38,4 @@ class Post(Base):
     post_created_at: Mapped[created_at]
 
     user: Mapped[User] = relationship("User")
-
-class Vote(Base):
-    __tablename__ = "votes"
-
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
-    post_id: Mapped[int] = mapped_column(ForeignKey("posts.post_id", ondelete="CASCADE"), primary_key=True)
+    votes: Mapped[List[Vote]] = relationship("Vote")

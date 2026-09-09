@@ -2,7 +2,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.repositories.posts import PostRepository
-from app import schemas, models
+from app.schemas import posts
+from app import models
 
 class PostSerivce:
     @staticmethod
@@ -20,7 +21,7 @@ class PostSerivce:
         return post
 
     @staticmethod
-    def create_post(db: Session, post: schemas.PostCreate, current_user: models.User):
+    def create_post(db: Session, post: posts.PostCreate, current_user: models.User):
         post_data = post.model_dump()
         user_id = current_user.user_id
 
@@ -41,7 +42,7 @@ class PostSerivce:
         PostRepository.delete(db, post_id)
 
     @staticmethod
-    def update_post(db: Session, post_id: int, post: schemas.PostUpdate, current_user: models.User):
+    def update_post(db: Session, post_id: int, post: posts.PostUpdate, current_user: models.User):
         post_to_update = PostRepository.get_by_id(db, post_id)
 
         if post_to_update is None:

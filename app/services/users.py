@@ -10,7 +10,7 @@ from app import schemas, models, security, oauth2
 
 class UserService:
     @staticmethod
-    def create_user(db: Session, user: schemas.UserCreate):
+    def create_user(db: Session, user: schemas.users.UserCreate):
         user_data = user.model_dump()
         existed_user = UserRepository.get_by_email(user.user_email)
 

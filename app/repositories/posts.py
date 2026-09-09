@@ -1,5 +1,5 @@
 from sqlalchemy import select, delete, update, insert, func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app import models
 
@@ -18,6 +18,8 @@ class PostRepository:
             .limit(limit)
             .offset(offset)
         )
+
+        print(query.compile(compile_kwargs={"literal_binds": True}))
         result = db.execute(query).all()
 
         return result
@@ -93,5 +95,17 @@ class PostRepository:
 
         result = db.execute(stmt).scalar_one_or_none()
         db.commit()
+
+        return result
+
+    @staticmethod
+    def get_with_votes_test(db: Session):
+        query = (
+            select(models.Post)
+            .options(joinedload(models.Post.votes))
+        )
+
+        result = db.execute(query).unique().scalars().all()
+        print(result)
 
         return result
