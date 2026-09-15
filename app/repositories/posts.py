@@ -1,31 +1,35 @@
-from sqlalchemy import select, delete, update, insert, func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select, delete, update, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager
 
 from app import models
+from typing import Any
 
 class PostRepository:
     @staticmethod
-    def get_many(db: Session, limit: int = 5, offset: int = 0, search: str = ""):
+    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = ""):
         """
         Возвращает пагинированные посты
         """ 
 
         query = (
             select(models.Post, func.count(models.Vote.user_id).label("votes"))
+            .join(models.Post.user)
+            .options(contains_eager(models.Post.user))
             .outerjoin(models.Vote, models.Post.post_id  == models.Vote.post_id)
             .where(models.Post.post_title.contains(search))
-            .group_by(models.Post.post_id)
+            .group_by(models.Post.post_id, models.User.user_id)
             .limit(limit)
             .offset(offset)
         )
 
-        print(query.compile(compile_kwargs={"literal_binds": True}))
-        result = db.execute(query).all()
+        # print(query.compile(compile_kwargs={"literal_binds": True}))
+        result = (await db.execute(query)).all()
 
         return result
 
     @staticmethod
-    def get_by_id(db: Session, post_id: int):
+    async def get_by_id(db: AsyncSession, post_id: int):
         """
         Возвращает пост по post_id
         """
@@ -34,28 +38,31 @@ class PostRepository:
             select(models.Post)
             .where(models.Post.post_id == post_id)
         )
-        result = db.execute(query).scalar_one_or_none()
+        result = (await db.execute(query)).scalar_one_or_none()
 
         return result
     
     @staticmethod
-    def get_by_id_with_votes(db: Session, post_id: int):
+    async def get_by_id_with_votes(db: AsyncSession, post_id: int):
         """
         Возвращает пост по post_id
         """
 
         query = (
             select(models.Post, func.count(models.Vote.user_id).label("votes"))
+            .join(models.Post.user)
+            .options(contains_eager(models.Post.user))
             .outerjoin(models.Vote, models.Post.post_id == models.Vote.post_id)
             .where(models.Post.post_id == post_id)
-            .group_by(models.Post.post_id)
+            .group_by(models.Post.post_id, models.User.user_id)
         )
-        result = db.execute(query).one_or_none()
+        print(query.compile(compile_kwargs={"literal_binds": True}))
+        result = (await db.execute(query)).one_or_none()
 
         return result
 
     @staticmethod
-    def create(db: Session, post_data: dict):
+    async def create(db: AsyncSession, post_data: dict[str, Any]):
         """
         Создаёт новый пост
         """
@@ -63,13 +70,13 @@ class PostRepository:
         new_post = models.Post(**post_data)
 
         db.add(new_post)
-        db.commit()
-        db.refresh(new_post)
+        await db.commit()
+        await db.refresh(new_post)
 
         return new_post
 
     @staticmethod
-    def delete(db: Session, post_id: int):
+    async def delete(db: AsyncSession, post_id: int):
         """
         Удаляет пост
         """
@@ -78,11 +85,11 @@ class PostRepository:
             .where(models.Post.post_id == post_id)
         )
 
-        db.execute(stmt)
-        db.commit()
+        await db.execute(stmt)
+        await db.commit()
 
     @staticmethod
-    def update(db: Session, post_data: dict, post_id: int):
+    async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int):
         """
         Обновляет существующий пост
         """
@@ -93,19 +100,16 @@ class PostRepository:
             .returning(models.Post)
         )
 
-        result = db.execute(stmt).scalar_one_or_none()
-        db.commit()
-
+        result = (await db.execute(stmt)).scalar_one_or_none()
+        await db.commit()
         return result
 
     @staticmethod
-    def get_with_votes_test(db: Session):
+    async def get_with_votes_test(db: AsyncSession):
         query = (
             select(models.Post)
             .options(joinedload(models.Post.votes))
         )
 
-        result = db.execute(query).unique().scalars().all()
-        print(result)
-
+        result = (await db.execute(query)).unique().scalars().all()
         return result
