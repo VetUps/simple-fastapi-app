@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, EmailStr
 from datetime import datetime
 from typing import List
 
@@ -10,6 +10,8 @@ class PostBase(BaseModel):
     post_content: str
     post_published: bool = True
 
+    model_config = ConfigDict(from_attributes=True)
+
 class PostCreate(PostBase):
     pass
 
@@ -18,8 +20,8 @@ class PostUpdate(PostBase):
 
 class PostResponse(PostBase):
     post_id: int
-    user: UserResponse
     post_created_at: datetime
+    user: UserResponse
 
 class PostResponseWithVotes(BaseModel):
     Post: PostResponse
@@ -30,3 +32,8 @@ class PostResponseWithRealVotes(BaseModel):
     user: UserResponse
     post_created_at: datetime
     votes: List[Vote]
+
+class UserResponseWithPosts(BaseModel):
+    user_email: EmailStr
+    user_created_at: datetime
+    posts: List[PostBase]

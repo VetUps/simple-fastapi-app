@@ -32,6 +32,15 @@ class UserService:
         return user
 
     @staticmethod
+    async def get_user_with_posts(db: AsyncSession, user_id: int):
+        user = await UserRepository.get_user_by_id_with_posts(db, user_id)
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")
+
+        return user
+
+    @staticmethod
     async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm):
         user = await UserRepository.get_by_email(db, user_data.username)
 
@@ -53,3 +62,9 @@ class UserService:
             "access_token": token,
             "token_type": "Bearer"
         }
+
+    @staticmethod
+    async def delete_user(db: AsyncSession, user_id: int):
+        await UserService.get_user(db, user_id)
+        await UserRepository.delete(db, user_id)
+        

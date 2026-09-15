@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy import select, delete
 
 from app import models
 from typing import Any
@@ -28,6 +29,17 @@ class UserRepository:
         return result
 
     @staticmethod
+    async def get_user_by_id_with_posts(db: AsyncSession, user_id: int):
+        query = (
+            select(models.User)
+            .where(models.User.user_id == user_id)
+            .options(selectinload(models.User.posts))
+        )
+
+        result = (await db.execute(query)).scalars().one_or_none()
+        return result
+        
+    @staticmethod
     async def get_by_email(db: AsyncSession, user_email: str):
         query = (
             select(models.User)
@@ -46,3 +58,14 @@ class UserRepository:
         await db.refresh(new_user)
 
         return new_user
+
+    @staticmethod
+    async def delete(db: AsyncSession, user_id: int):
+        stmt = (
+            delete(models.User)
+            .where(models.User.user_id == user_id)
+        )
+
+        await db.execute(stmt)
+        await db.commit()
+        

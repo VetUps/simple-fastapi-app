@@ -16,3 +16,5 @@ class UserLogin(UserBase):
 class UserResponse(BaseModel):
     user_email: EmailStr
     user_created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
