@@ -45,10 +45,10 @@ class UserService:
         user = await UserRepository.get_by_email(db, user_data.username)
 
         if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="invalid credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 
         if not await security.verify(user_data.password, user.user_password):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="invalid credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 
         token = oauth2.create_access_token(
             data={

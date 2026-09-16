@@ -12,7 +12,7 @@ from app.repositories.posts import PostRepository
 
 router = APIRouter(
     prefix="/posts",
-    tags=["Tags"] 
+    tags=["Posts"] 
     )
 
 @router.get("/test_with_votes", response_model=List[posts.PostResponseWithRealVotes])

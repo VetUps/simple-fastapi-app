@@ -1,6 +1,6 @@
 from sqlalchemy import select, delete, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app import models
 from typing import Any
@@ -113,3 +113,4 @@ class PostRepository:
 
         result = (await db.execute(query)).unique().scalars().all()
         return result
+    
