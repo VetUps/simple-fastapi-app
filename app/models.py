@@ -1,10 +1,11 @@
 from __future__ import annotations
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql.expression import text
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Enum
 
 from typing import Annotated, List
 from datetime import datetime
+import enum
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime, mapped_column(server_default=text("now()"))]
@@ -13,12 +14,18 @@ updated_at = Annotated[datetime, mapped_column(server_default=text("now()"), onu
 class Base(DeclarativeBase):
     pass
 
+class UserRole(enum.Enum):
+    ADIM = "admin"
+    USER = "user"
+    GUEST = "guest"
+
 class User(Base):
     __tablename__ = "users"
 
     user_id: Mapped[intpk]
     user_email: Mapped[str] = mapped_column(unique=True)
     user_password: Mapped[str]
+    user_role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role_enum"), nullable=False, default=UserRole.USER)
     user_created_at: Mapped[created_at]
     user_updated_at: Mapped[updated_at]
 

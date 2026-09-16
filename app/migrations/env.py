@@ -13,18 +13,12 @@ from models import *
 # Объект конфига для управления настройками из alembic.ini
 config = context.config
 config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
-context.configure(compare_type=True, compare_server_default=True)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Задаём метаданные, чтобы alembic знал, какие таблицы у нас есть
+# Задаём метаданные, чтобы alembic знал, какие таблицы у нас есть и с чем сравнивать БД
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline() -> None:
@@ -39,12 +33,14 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option("sqlalchemy.url") # URL для того, чтобы понять диалект SQL
     context.configure(
         url=url,
         target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        literal_binds=True, # Чтобы подставить все значения сразу вместо плейсхолдеры
+        dialect_opts={"paramstyle": "named"}, # Стиль именования
+        compare_type=True, # Сравнивать типы, чтобы их изменение фиксировалось в миграциях
+        compare_server_default=True, # Сравнивать дефолтные значения на уровне БД, чтобы их изменение фиксировалось в миграциях
     )
 
     with context.begin_transaction():
@@ -52,7 +48,14 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # Основная функция онлайн миграций, как для синхронных, так и для асинхронных миграций
+
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        compare_type=True, 
+        compare_server_default=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
@@ -64,18 +67,20 @@ async def run_async_migrations() -> None:
 
     """
 
+    # Создание асинхронного движка на основе конфига
     connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
+        config.get_section(config.config_ini_section, {}), # Берём только секцию [alembic]
+        prefix="sqlalchemy.", # Берём все переменные которые начинаются с sqlalchemy
+        poolclass=pool.NullPool, # Создание миграций без пула соединений, т.е. каждое подключение создаётся и закрывается сразу
     )
+    # При этом можно использовать свой движок
 
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
 
-
+# Точка входа для асинхронной генерации миграций
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
 
