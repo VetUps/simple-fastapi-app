@@ -17,7 +17,6 @@ class Base(DeclarativeBase):
 class UserRole(enum.Enum):
     ADIM = "admin"
     USER = "user"
-    GUEST = "guest"
 
 class User(Base):
     __tablename__ = "users"
