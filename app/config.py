@@ -11,5 +11,6 @@ class Settings(BaseSettings):
     ALGORITHM: str
 
     DATABASE_URL: PostgresDsn
+    TEST_DATABASE_URL: PostgresDsn
 
 settings = Settings()
