@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
@@ -7,6 +6,8 @@ from app.config import settings
 from app.models import Base
 from app.main import app
 from app.database import get_db
+from app.services.users import UserService
+from app.schemas import users
 
 async_enige = create_async_engine(url=str(settings.TEST_DATABASE_URL))
 AsyncSessionFactory = async_sessionmaker(bind=async_enige, autoflush=False, expire_on_commit=False)
@@ -35,7 +36,7 @@ async def setup_database():
 
     await async_enige.dispose()           
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 async def clear_tables():
     async with AsyncSessionFactory() as session:
         for table in reversed(Base.metadata.sorted_tables):
@@ -49,4 +50,19 @@ async def client():
 
     async with AsyncClient(transport=transport, base_url="http://test") as async_client:
         yield async_client
+
+@pytest.fixture
+async def existed_user():
+    async def create_user():
+        async with AsyncSessionFactory() as session:
+            user_data = {
+                "user_email": "test@gmail.com",
+                "user_password": "123456"
+            }
+            user_create = users.UserCreate(**user_data)
         
+            res = await UserService.create_user(session, user_create)
+            return res
+
+    return create_user
+    

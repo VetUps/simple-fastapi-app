@@ -43,6 +43,8 @@ class UserService:
     @staticmethod
     async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm):
         user = await UserRepository.get_by_email(db, user_data.username)
+        print(user_data.username)
+        print(user_data.password)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")

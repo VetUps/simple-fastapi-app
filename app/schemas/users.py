@@ -14,6 +14,7 @@ class UserLogin(UserBase):
     pass
 
 class UserResponse(BaseModel):
+    user_id: int
     user_email: EmailStr
     user_created_at: datetime
 
