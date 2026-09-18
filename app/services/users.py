@@ -23,13 +23,22 @@ class UserService:
         return new_user
 
     @staticmethod
-    async def get_user(db: AsyncSession, user_id: int):
+    async def get_user_by_id(db: AsyncSession, user_id: int):
         user = await UserRepository.get_by_id(db, user_id)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")
 
         return user
+
+    @staticmethod
+    async def get_user_by_email(db: AsyncSession, user_email: str):
+        user = await UserRepository.get_by_email(db, user_email)
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_email} was not found")
+
+        return user   
 
     @staticmethod
     async def get_user_with_posts(db: AsyncSession, user_id: int):
@@ -44,7 +53,6 @@ class UserService:
     async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm):
         user = await UserRepository.get_by_email(db, user_data.username)
         print(user_data.username)
-        print(user_data.password)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
@@ -67,6 +75,6 @@ class UserService:
 
     @staticmethod
     async def delete_user(db: AsyncSession, user_id: int):
-        await UserService.get_user(db, user_id)
+        await UserService.get_user_by_id(db, user_id)
         await UserRepository.delete(db, user_id)
         

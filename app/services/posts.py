@@ -5,7 +5,7 @@ from app.repositories.posts import PostRepository
 from app.schemas import posts
 from app import models
 
-class PostSerivce:
+class PostService:
     @staticmethod
     async def get_posts(db: AsyncSession, limit: int = 5, page: int = 1, search: str = ""):
         offset = (page - 1) * limit

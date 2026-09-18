@@ -19,7 +19,7 @@ class VoteService:
         if existed_vote:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"user {current_user.user_id} already vote on post {post_id}")
 
-        vote = VoteRepository.create(db, post_id, user_id)
+        vote = await VoteRepository.create(db, post_id, user_id)
         return vote
 
     @staticmethod
