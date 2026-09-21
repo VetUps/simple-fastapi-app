@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi import HTTPException
 import pytest
 
@@ -24,14 +24,14 @@ async def test_update_post():
     mock_current_user.user_id = current_user_id
 
     with patch("app.services.posts.PostRepository.get_by_id", new=AsyncMock(return_value=mock_post_to_update)) as mock_get_by_id, \
-         patch("app.services.posts.PostRepository.update", new=AsyncMock(return_value=mock_post_new)) as mock_update:
+        patch("app.services.posts.PostRepository.update", new=AsyncMock(return_value=mock_post_new)) as mock_update:
 
-         result = await PostService.update_post(mock_db, post_id, mock_post_new, mock_current_user)
+        result = await PostService.update_post(mock_db, post_id, mock_post_new, mock_current_user)
 
-         assert result == mock_post_new
+        assert result == mock_post_new
 
-         mock_get_by_id.assert_called_once_with(mock_db, post_id)
-         mock_update.assert_called_once_with(mock_db, post_data, post_id)
+        mock_get_by_id.assert_called_once_with(mock_db, post_id)
+        mock_update.assert_called_once_with(mock_db, post_data, post_id)
 
 async def test_update_non_existent_post():
     mock_db = MagicMock()

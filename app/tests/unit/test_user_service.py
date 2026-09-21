@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi import HTTPException
 import pytest
 
@@ -13,8 +13,8 @@ async def test_create_user():
     mock_user.model_dump.return_value = {"user_email": "mockeduser@gmail.com", "user_password": raw_password}
 
     with patch("app.services.users.UserRepository.get_by_email", new=AsyncMock(return_value=None)) as mock_get_by_email, \
-         patch("app.services.users.security.hash_password", new=AsyncMock(return_value="hashed_passowrd")) as mock_hash_password, \
-         patch("app.services.users.UserRepository.craete", new=AsyncMock(return_value=mock_user)) as mock_create:
+        patch("app.services.users.security.hash_password", new=AsyncMock(return_value="hashed_passowrd")) as mock_hash_password, \
+        patch("app.services.users.UserRepository.craete", new=AsyncMock(return_value=mock_user)) as mock_create:
         result = await UserService.create_user(mock_db, mock_user)
 
         assert result == mock_user

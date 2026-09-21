@@ -1,11 +1,11 @@
-from fastapi import status, Depends, APIRouter
+from fastapi import status, Depends, APIRouter, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
-from app.schemas import posts, votes
-from app import models, oauth2
 from typing import List
 
+from app import models, oauth2, utils
+from app.database import get_db
+from app.schemas import posts, votes
 from app.services.posts import PostService
 from app.services.votes import VoteService
 from app.repositories.posts import PostRepository
@@ -29,8 +29,10 @@ async def get_post(id: int, db: AsyncSession = Depends(get_db)):
     return result
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=posts.PostResponse)
-async def create_post(post: posts.PostCreate, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
-    return await PostService.create_post(db, post, current_user)
+async def create_post(post: posts.PostCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
+    result = await PostService.create_post(db, post, current_user)
+    background_tasks.add_task(utils.send_notification, result.post_id, current_user.user_email)
+    return result
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(id: int, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
