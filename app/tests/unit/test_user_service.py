@@ -5,7 +5,7 @@ import pytest
 from app.services.users import UserService
 
 async def test_create_user():
-    mock_db = Mock()
+    mock_db = MagicMock()
 
     raw_password = "123456"
     mock_user = MagicMock()
@@ -24,7 +24,7 @@ async def test_create_user():
         mock_create.assert_called_once_with(mock_db, {"user_email": "mockeduser@gmail.com", "user_password": "hashed_passowrd"})
 
 async def test_create_already_existed_user():
-    mock_db = Mock()
+    mock_db = MagicMock()
 
     mock_user_data = {"user_email": "mockeduser@gmail.com", "user_password": "123456"}
     mock_user = MagicMock()
