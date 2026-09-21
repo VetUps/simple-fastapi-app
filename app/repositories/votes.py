@@ -5,7 +5,7 @@ from app import models
 
 class VoteRepository:
     @staticmethod
-    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int):
+    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int) -> models.Vote | None:
         stmt = (
             select(models.Vote)
             .where(models.Vote.post_id == post_id, models.Vote.user_id == user_id)
@@ -15,7 +15,7 @@ class VoteRepository:
         return result
 
     @staticmethod
-    async def create(db: AsyncSession, post_id: int, user_id: int):
+    async def create(db: AsyncSession, post_id: int, user_id: int) -> models.Vote | None:
         stmt = (
             insert(models.Vote)
             .values(post_id=post_id, user_id=user_id)
@@ -28,7 +28,7 @@ class VoteRepository:
         return result
 
     @staticmethod
-    async def delete(db: AsyncSession, post_id: int, user_id: int):
+    async def delete(db: AsyncSession, post_id: int, user_id: int) -> None:
         stmt = (
             delete(models.Vote)
             .where(models.Vote.post_id == post_id, models.Vote.user_id == user_id)

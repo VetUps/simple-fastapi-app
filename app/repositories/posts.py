@@ -1,13 +1,13 @@
-from sqlalchemy import select, delete, update, func
+from sqlalchemy import Row, select, delete, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 
 from app import models
-from typing import Any
+from typing import Any, Sequence, Tuple
 
 class PostRepository:
     @staticmethod
-    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = ""):
+    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = "") -> Sequence[Row[Tuple[models.Post, int]]]:
         """
         Возвращает пагинированные посты
         """ 
@@ -29,7 +29,7 @@ class PostRepository:
         return result
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, post_id: int):
+    async def get_by_id(db: AsyncSession, post_id: int) -> models.Post | None:
         """
         Возвращает пост по post_id
         """
@@ -43,7 +43,7 @@ class PostRepository:
         return result
     
     @staticmethod
-    async def get_by_id_with_votes(db: AsyncSession, post_id: int):
+    async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> Row[Tuple[models.Post, int]] | None:
         """
         Возвращает пост по post_id
         """
@@ -62,7 +62,7 @@ class PostRepository:
         return result
 
     @staticmethod
-    async def create(db: AsyncSession, post_data: dict[str, Any]):
+    async def create(db: AsyncSession, post_data: dict[str, Any]) -> models.Post:
         """
         Создаёт новый пост
         """
@@ -76,7 +76,7 @@ class PostRepository:
         return new_post
 
     @staticmethod
-    async def delete(db: AsyncSession, post_id: int):
+    async def delete(db: AsyncSession, post_id: int) -> None:
         """
         Удаляет пост
         """
@@ -89,7 +89,7 @@ class PostRepository:
         await db.commit()
 
     @staticmethod
-    async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int):
+    async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int) -> models.Post:
         """
         Обновляет существующий пост
         """
@@ -100,7 +100,7 @@ class PostRepository:
             .returning(models.Post)
         )
 
-        result = (await db.execute(stmt)).scalar_one_or_none()
+        result = (await db.execute(stmt)).scalar_one()
         await db.commit()
         return result
 

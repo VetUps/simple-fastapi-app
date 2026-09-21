@@ -3,11 +3,11 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select, delete
 
 from app import models
-from typing import Any
+from typing import Any, Sequence
 
 class UserRepository:
     @staticmethod
-    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = ""):
+    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = "") -> Sequence[models.User]:
         query = (
             select(models.User)
             .where(models.User.user_email.contains(search))
@@ -19,7 +19,7 @@ class UserRepository:
         return result
 
     @staticmethod
-    async def get_by_id(db: AsyncSession, user_id: int):
+    async def get_by_id(db: AsyncSession, user_id: int) -> models.User | None:
         query = (
             select(models.User)
             .where(models.User.user_id == user_id)
@@ -29,7 +29,7 @@ class UserRepository:
         return result
 
     @staticmethod
-    async def get_user_by_id_with_posts(db: AsyncSession, user_id: int):
+    async def get_user_by_id_with_posts(db: AsyncSession, user_id: int) -> models.User | None:
         query = (
             select(models.User)
             .where(models.User.user_id == user_id)
@@ -40,7 +40,7 @@ class UserRepository:
         return result
         
     @staticmethod
-    async def get_by_email(db: AsyncSession, user_email: str):
+    async def get_by_email(db: AsyncSession, user_email: str) -> models.User | None:
         query = (
             select(models.User)
             .where(models.User.user_email == user_email)
@@ -50,7 +50,7 @@ class UserRepository:
         return result
 
     @staticmethod
-    async def craete(db: AsyncSession, user_data: dict[str, Any]):
+    async def craete(db: AsyncSession, user_data: dict[str, Any]) -> models.User:
         new_user = models.User(**user_data)
 
         db.add(new_user)
@@ -60,7 +60,7 @@ class UserRepository:
         return new_user
 
     @staticmethod
-    async def delete(db: AsyncSession, user_id: int):
+    async def delete(db: AsyncSession, user_id: int) -> None:
         stmt = (
             delete(models.User)
             .where(models.User.user_id == user_id)
