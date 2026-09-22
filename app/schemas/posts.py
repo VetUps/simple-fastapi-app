@@ -27,6 +27,8 @@ class PostResponseWithVotes(BaseModel):
     Post: PostResponse
     votes: int
 
+    model_config = ConfigDict(from_attributes=True)
+
 class PostResponseWithRealVotes(BaseModel):
     post_id: int
     user: UserResponse

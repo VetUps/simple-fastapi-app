@@ -13,4 +13,7 @@ class Settings(BaseSettings):
     DATABASE_URL: PostgresDsn
     TEST_DATABASE_URL: PostgresDsn
 
+    REDIS_HOST: str
+    REDIS_PORT: int
+
 settings = Settings()
