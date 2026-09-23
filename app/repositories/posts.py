@@ -1,12 +1,15 @@
 from sqlalchemy import Row, select, delete, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
+from typing import Any, List, Sequence, Tuple
 
 from app import models
-from typing import Any, Sequence, Tuple
+from app.redis import cache_or_db
+from app.schemas import posts
 
 class PostRepository:
     @staticmethod
+    @cache_or_db("posts:many", List[posts.PostResponseWithVotes])
     async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = "") -> Sequence[Row[Tuple[models.Post, int]]]:
         """
         Возвращает пагинированные посты
@@ -29,6 +32,7 @@ class PostRepository:
         return result
 
     @staticmethod
+    @cache_or_db("posts:by_id", models.Post)
     async def get_by_id(db: AsyncSession, post_id: int) -> models.Post | None:
         """
         Возвращает пост по post_id
@@ -43,6 +47,7 @@ class PostRepository:
         return result
     
     @staticmethod
+    @cache_or_db("posts:by_id_with_votes", posts.PostResponseWithVotes)
     async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> Row[Tuple[models.Post, int]] | None:
         """
         Возвращает пост по post_id

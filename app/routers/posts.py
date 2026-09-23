@@ -11,6 +11,7 @@ from app.schemas import posts, votes
 from app.services.posts import PostService
 from app.services.votes import VoteService
 from app.repositories.posts import PostRepository
+from app.tasks import send_notification
 
 router = APIRouter(
     prefix="/posts",
@@ -25,17 +26,18 @@ async def get_posts_test(db: AsyncSession = Depends(get_db)):
 
 @router.get("/", response_model=List[posts.PostResponseWithVotes])
 async def get_posts(db: AsyncSession = Depends(get_db), limit: int = 5, page: int = 1, search: str = ""):
-    posts_from_cache = await redis_client.get(f"posts:page={page}:limit={limit}:search={search}")
-    if posts_from_cache:
-        print("Посты взяты из кэша")
-        return orjson.loads(posts_from_cache)
+    # TODO: перенести работу кэша на уровень репозиториев
+    # posts_from_cache = await redis_client.get(f"posts:page={page}:limit={limit}:search={search}")
+    # if posts_from_cache:
+    #     print("Посты взяты из кэша")
+    #     return orjson.loads(posts_from_cache)
 
-    result = await PostService.get_posts(db, limit, page, search)
-    pydantic_posts = [posts.PostResponseWithVotes.model_validate(row).model_dump(mode="json") for row in result]
-    cached_posts = orjson.dumps(pydantic_posts)
-    await redis_client.set(name=f"posts:page={page}:limit={limit}:search={search}", value=cached_posts, ex=CACHE_TTL)
+    # result = await PostService.get_posts(db, limit, page, search)
+    # pydantic_posts = [posts.PostResponseWithVotes.model_validate(row).model_dump(mode="json") for row in result]
+    # cached_posts = orjson.dumps(pydantic_posts)
+    # await redis_client.set(name=f"posts:page={page}:limit={limit}:search={search}", value=cached_posts, ex=CACHE_TTL)
 
-    return result
+    return await PostService.get_posts(db, limit, page, search)
 
 @router.get("/{id}", response_model=posts.PostResponseWithVotes)
 async def get_post(id: int, db: AsyncSession = Depends(get_db)):
@@ -45,7 +47,8 @@ async def get_post(id: int, db: AsyncSession = Depends(get_db)):
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=posts.PostResponse)
 async def create_post(post: posts.PostCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
     result = await PostService.create_post(db, post, current_user)
-    background_tasks.add_task(utils.send_notification, result.post_id, current_user.user_email)
+    # background_tasks.add_task(utils.send_notification, result.post_id, current_user.user_email)
+    send_notification.delay(result.post_id, current_user.user_email)
 
     await invalidate_posts_cache()
 

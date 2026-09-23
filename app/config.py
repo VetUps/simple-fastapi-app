@@ -15,5 +15,8 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str
     REDIS_PORT: int
+    REDIS_CAHCE_DB: int
+    REDIS_BROKER_DB: int
+    CACHE_TTL: int
 
 settings = Settings()
