@@ -3,11 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.posts import PostRepository
 from app.repositories.votes import VoteRepository
-from app import models
+from app.schemas import users
 
 class VoteService:
     @staticmethod
-    async def vote_post(db: AsyncSession, post_id: int, current_user: models.User):
+    async def vote_post(db: AsyncSession, post_id: int, current_user: users.UserResponse):
         user_id = current_user.user_id
         post = await PostRepository.get_by_id(db, post_id)
 
@@ -23,7 +23,7 @@ class VoteService:
         return vote
 
     @staticmethod
-    async def unvote_post(db: AsyncSession, post_id: int, current_user: models.User):
+    async def unvote_post(db: AsyncSession, post_id: int, current_user: users.UserResponse):
         user_id = current_user.user_id
         post = await PostRepository.get_by_id(db, post_id)
         

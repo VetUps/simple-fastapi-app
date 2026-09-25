@@ -2,8 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.posts import PostRepository
-from app.schemas import posts
-from app import models
+from app.schemas import posts, users
 
 class PostService:
     @staticmethod
@@ -21,7 +20,7 @@ class PostService:
         return post
 
     @staticmethod
-    async def create_post(db: AsyncSession, post: posts.PostCreate, current_user: models.User):
+    async def create_post(db: AsyncSession, post: posts.PostCreate, current_user: users.UserResponse):
         post_data = post.model_dump()
         user_id = current_user.user_id
 
@@ -30,7 +29,7 @@ class PostService:
         return await PostRepository.create(db, post_data)
 
     @staticmethod
-    async def delete_post(db: AsyncSession, post_id: int, current_user: models.User):
+    async def delete_post(db: AsyncSession, post_id: int, current_user: users.UserResponse):
         post_to_delete = await PostRepository.get_by_id(db, post_id)
 
         if post_to_delete is None:
@@ -42,7 +41,7 @@ class PostService:
         await PostRepository.delete(db, post_id)
 
     @staticmethod
-    async def update_post(db: AsyncSession, post_id: int, post: posts.PostUpdate, current_user: models.User):
+    async def update_post(db: AsyncSession, post_id: int, post: posts.PostUpdate, current_user: users.UserResponse):
         post_to_update = await PostRepository.get_by_id(db, post_id)
 
         if post_to_update is None:

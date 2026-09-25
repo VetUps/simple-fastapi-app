@@ -1,12 +1,6 @@
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
-from app import models
-from app.database import get_db
-from app.schemas import tokens
-from app.config import settings
 
 import datetime
 from datetime import timedelta
@@ -14,6 +8,11 @@ from typing import Any
 
 import jwt
 from jwt.exceptions import InvalidTokenError
+
+from app.database import get_db
+from app.schemas import tokens, users
+from app.config import settings
+from app.services.users import UserService
 
 
 ouath2_schema = OAuth2PasswordBearer(tokenUrl="login")
@@ -47,7 +46,7 @@ def verify_access_token(token: str, credentials_exception: HTTPException):
     except InvalidTokenError:
         raise credentials_exception
 
-async def get_current_user(token: str = Depends(ouath2_schema), db: AsyncSession = Depends(get_db)) -> models.User:
+async def get_current_user(token: str = Depends(ouath2_schema), db: AsyncSession = Depends(get_db)) -> users.UserResponse:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Couldn`t validate credentials",
@@ -57,10 +56,6 @@ async def get_current_user(token: str = Depends(ouath2_schema), db: AsyncSession
     token_data = verify_access_token(token, credentials_exception)
     user_id = token_data.user_id
 
-    query = (
-        select(models.User)
-        .where(models.User.user_id == user_id)
-    )
+    current_user = await UserService.get_user_by_id(db, user_id)
 
-    current_user = (await db.execute(query)).scalar_one()
     return current_user

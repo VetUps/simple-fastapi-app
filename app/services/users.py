@@ -25,7 +25,6 @@ class UserService:
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: int):
         user = await UserRepository.get_by_id(db, user_id)
-        print(user)
 
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")

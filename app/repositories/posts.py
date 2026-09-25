@@ -106,10 +106,9 @@ class PostRepository:
             update(models.Post)
             .values(**post_data)
             .where(models.Post.post_id == post_id)
-            .returning(models.Post)
         )
 
-        result = (await db.execute(stmt)).scalar_one()
+        await db.execute(stmt)
         await db.commit()
 
-        return post_with_user_adapter.validate_python(result)
+        return await PostRepository.get_by_id(db, post_id)
