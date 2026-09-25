@@ -14,7 +14,7 @@ router = APIRouter(
 async def create_user(user: users.UserCreate, db: AsyncSession = Depends(get_db)):
     return await UserService.create_user(db, user)
 
-@router.get("/{id}", response_model=users.UserResponse | posts.UserResponseWithPosts)
+@router.get("/{id}", response_model=users.UserResponse | posts.UserWithPosts)
 async def get_user(id: int, include: str = "", db: AsyncSession = Depends(get_db)):
     if include == "posts":
         return await UserService.get_user_with_posts(db, id)

@@ -19,3 +19,6 @@ class UserResponse(BaseModel):
     user_created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserResponseSecurity(UserResponse):
+    user_password: str

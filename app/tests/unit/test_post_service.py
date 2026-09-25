@@ -18,7 +18,7 @@ async def test_update_post():
     mock_post_new.model_dump.return_value = post_data
 
     mock_post_to_update = MagicMock()
-    mock_post_to_update.user_id = current_user_id
+    mock_post_to_update.user.user_id = current_user_id
 
     mock_current_user = MagicMock()
     mock_current_user.user_id = current_user_id

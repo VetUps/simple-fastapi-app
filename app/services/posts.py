@@ -36,7 +36,7 @@ class PostService:
         if post_to_delete is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
 
-        if post_to_delete.user_id != current_user.user_id:
+        if post_to_delete.user.user_id != current_user.user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"not authorized to perform requested action")
 
         await PostRepository.delete(db, post_id)
@@ -48,7 +48,7 @@ class PostService:
         if post_to_update is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
 
-        if post_to_update.user_id != current_user.user_id:
+        if post_to_update.user.user_id != current_user.user_id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"not authorized to perform requested action")
 
         post_data = post.model_dump()

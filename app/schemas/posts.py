@@ -18,13 +18,17 @@ class PostCreate(PostBase):
 class PostUpdate(PostBase):
     pass
 
-class PostResponse(PostBase):
+class PostWithUser(PostBase):
     post_id: int
     post_created_at: datetime
     user: UserResponse
 
-class PostResponseWithVotes(BaseModel):
-    Post: PostResponse
+class PostWithoutUser(PostBase):
+    post_id: int
+    post_created_at: datetime
+
+class PostWithVotes(BaseModel):
+    Post: PostWithUser
     votes: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -35,7 +39,9 @@ class PostResponseWithRealVotes(BaseModel):
     post_created_at: datetime
     votes: List[Vote]
 
-class UserResponseWithPosts(BaseModel):
+class UserWithPosts(BaseModel):
     user_email: EmailStr
     user_created_at: datetime
     posts: List[PostBase]
+
+    model_config = ConfigDict(from_attributes=True)

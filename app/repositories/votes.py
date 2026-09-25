@@ -1,21 +1,27 @@
 from sqlalchemy import select, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import TypeAdapter
 
 from app import models
+from app.schemas import votes
+from app.redis import cache_or_db
+
+vote_adapter = TypeAdapter(votes.Vote)
 
 class VoteRepository:
     @staticmethod
-    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int) -> models.Vote | None:
-        stmt = (
+    @cache_or_db("votes:one", votes.Vote)
+    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote | None:
+        query = (
             select(models.Vote)
             .where(models.Vote.post_id == post_id, models.Vote.user_id == user_id)
         )
-        result = (await db.execute(stmt)).scalar_one_or_none()
-
-        return result
+        result = (await db.execute(query)).scalar_one_or_none()
+        
+        return vote_adapter.validate_python(result) if result else None
 
     @staticmethod
-    async def create(db: AsyncSession, post_id: int, user_id: int) -> models.Vote | None:
+    async def create(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote:
         stmt = (
             insert(models.Vote)
             .values(post_id=post_id, user_id=user_id)
@@ -25,7 +31,7 @@ class VoteRepository:
         result = (await db.execute(stmt)).scalar_one_or_none()
         await db.commit()
 
-        return result
+        return vote_adapter.validate_python(result)
 
     @staticmethod
     async def delete(db: AsyncSession, post_id: int, user_id: int) -> None:

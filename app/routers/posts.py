@@ -24,7 +24,7 @@ CACHE_TTL = 30
 async def get_posts_test(db: AsyncSession = Depends(get_db)):
     return await PostRepository.get_with_votes_test(db)
 
-@router.get("/", response_model=List[posts.PostResponseWithVotes])
+@router.get("/", response_model=List[posts.PostWithVotes])
 async def get_posts(db: AsyncSession = Depends(get_db), limit: int = 5, page: int = 1, search: str = ""):
     # TODO: перенести работу кэша на уровень репозиториев
     # posts_from_cache = await redis_client.get(f"posts:page={page}:limit={limit}:search={search}")
@@ -39,12 +39,12 @@ async def get_posts(db: AsyncSession = Depends(get_db), limit: int = 5, page: in
 
     return await PostService.get_posts(db, limit, page, search)
 
-@router.get("/{id}", response_model=posts.PostResponseWithVotes)
+@router.get("/{id}", response_model=posts.PostWithVotes)
 async def get_post(id: int, db: AsyncSession = Depends(get_db)):
     result = await PostService.get_post(db, id)
     return result
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=posts.PostResponse)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=posts.PostWithUser)
 async def create_post(post: posts.PostCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
     result = await PostService.create_post(db, post, current_user)
     # background_tasks.add_task(utils.send_notification, result.post_id, current_user.user_email)
@@ -59,7 +59,7 @@ async def delete_post(id: int, db: AsyncSession = Depends(get_db), current_user:
     await PostService.delete_post(db, id, current_user)
     await invalidate_posts_cache()
 
-@router.put("/{id}", response_model=posts.PostResponse)
+@router.put("/{id}", response_model=posts.PostWithUser)
 async def update_post(id: int, post: posts.PostUpdate, db: AsyncSession = Depends(get_db), current_user: models.User = Depends(oauth2.get_current_user)):
     result = await PostService.update_post(db, id, post, current_user)
     await invalidate_posts_cache()

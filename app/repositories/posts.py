@@ -1,16 +1,22 @@
-from sqlalchemy import Row, select, delete, update, func
+from sqlalchemy import select, delete, insert, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
-from typing import Any, List, Sequence, Tuple
+from pydantic import TypeAdapter
+from typing import Any, List
 
 from app import models
 from app.redis import cache_or_db
 from app.schemas import posts
 
+post_with_votes_adapter = TypeAdapter(posts.PostWithVotes)
+post_with_votes_list_adapter = TypeAdapter(List[posts.PostWithVotes])
+post_with_user_adapter = TypeAdapter(posts.PostWithUser)
+post_without_user_adapter = TypeAdapter(posts.PostWithoutUser)
+
 class PostRepository:
     @staticmethod
-    @cache_or_db("posts:many", List[posts.PostResponseWithVotes])
-    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = "") -> Sequence[Row[Tuple[models.Post, int]]]:
+    @cache_or_db("posts:many", List[posts.PostWithVotes])
+    async def get_many(db: AsyncSession, limit: int = 5, offset: int = 0, search: str = "") -> List[posts.PostWithVotes]:
         """
         Возвращает пагинированные посты
         """ 
@@ -28,27 +34,27 @@ class PostRepository:
 
         # print(query.compile(compile_kwargs={"literal_binds": True}))
         result = (await db.execute(query)).all()
-
-        return result
+        return post_with_votes_list_adapter.validate_python(result)
 
     @staticmethod
-    @cache_or_db("posts:by_id", models.Post)
-    async def get_by_id(db: AsyncSession, post_id: int) -> models.Post | None:
+    @cache_or_db("posts:by_id", posts.PostWithUser)
+    async def get_by_id(db: AsyncSession, post_id: int) -> posts.PostWithUser | None:
         """
         Возвращает пост по post_id
         """
 
         query = (
             select(models.Post)
+            .options(joinedload(models.Post.user))
             .where(models.Post.post_id == post_id)
         )
         result = (await db.execute(query)).scalar_one_or_none()
 
-        return result
+        return post_with_user_adapter.validate_python(result) if result else None
     
     @staticmethod
-    @cache_or_db("posts:by_id_with_votes", posts.PostResponseWithVotes)
-    async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> Row[Tuple[models.Post, int]] | None:
+    @cache_or_db("posts:by_id_with_votes", posts.PostWithVotes)
+    async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> posts.PostWithVotes | None:
         """
         Возвращает пост по post_id
         """
@@ -64,21 +70,19 @@ class PostRepository:
         print(query.compile(compile_kwargs={"literal_binds": True}))
         result = (await db.execute(query)).one_or_none()
 
-        return result
+        return post_with_votes_adapter.validate_python(result) if result else None
 
     @staticmethod
-    async def create(db: AsyncSession, post_data: dict[str, Any]) -> models.Post:
+    async def create(db: AsyncSession, post_data: dict[str, Any]) -> posts.PostWithUser:
         """
         Создаёт новый пост
         """
-
         new_post = models.Post(**post_data)
 
         db.add(new_post)
         await db.commit()
-        await db.refresh(new_post)
 
-        return new_post
+        return await PostRepository.get_by_id(db, new_post.post_id)
 
     @staticmethod
     async def delete(db: AsyncSession, post_id: int) -> None:
@@ -94,7 +98,7 @@ class PostRepository:
         await db.commit()
 
     @staticmethod
-    async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int) -> models.Post:
+    async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int) -> posts.PostWithUser:
         """
         Обновляет существующий пост
         """
@@ -107,15 +111,5 @@ class PostRepository:
 
         result = (await db.execute(stmt)).scalar_one()
         await db.commit()
-        return result
 
-    @staticmethod
-    async def get_with_votes_test(db: AsyncSession):
-        query = (
-            select(models.Post)
-            .options(joinedload(models.Post.votes))
-        )
-
-        result = (await db.execute(query)).unique().scalars().all()
-        return result
-    
+        return post_with_user_adapter.validate_python(result)

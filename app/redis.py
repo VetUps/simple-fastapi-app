@@ -56,8 +56,10 @@ def cache_or_db(redis_key: str, serialization_type: BaseModel, build_key: bool =
                 return type_adapter.validate_json(cache)
 
             res = await func(*args, **kwargs)
-            res_validated = type_adapter.validate_python(res)
+            res_validated = None
+
             if res is not None:
+                res_validated = type_adapter.validate_python(res)
                 res_json = type_adapter.dump_json(res_validated)
                 await redis_client.set(name=actual_redis_key, value=res_json, ex=settings.CACHE_TTL)
 
