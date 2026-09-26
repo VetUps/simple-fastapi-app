@@ -52,7 +52,7 @@ class UserRepository:
         return user_with_posts_adapter.validate_python(result)
         
     @staticmethod
-    # @cache_or_db("users:by_email", users.UserResponse)
+    @cache_or_db("users:by_email", users.UserResponse)
     async def get_by_email(db: AsyncSession, user_email: str) -> users.UserResponse:
         query = (
             select(models.User)

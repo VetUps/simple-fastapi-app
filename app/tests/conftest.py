@@ -1,6 +1,9 @@
 import pytest
+import os
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+os.environ["REDIS_DB"] = "1"
 
 from app.config import settings
 from app.models import Base, User, Post, Vote
@@ -10,6 +13,7 @@ from app.services.users import UserService
 from app.services.posts import PostService
 from app.services.votes import VoteService
 from app.schemas import users, tokens, posts
+from app.redis import redis_client
 
 from custom_types import UserCreator, PostCreator, VoteCreator, TokenCreator
 
@@ -48,6 +52,11 @@ async def clear_tables():
             await session.execute(table.delete())
 
         await session.commit()
+
+@pytest.fixture(scope="function", autouse=True)
+async def clear_redis():
+    yield
+    await redis_client.flushdb(asynchronous=True)
 
 @pytest.fixture
 async def client():
