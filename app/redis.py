@@ -14,17 +14,6 @@ redis_client = aioredios.Redis(
     decode_responses=True # При = True будет возвращать строки, а не байты
 )
 
-async def invalidate_posts_cache():
-    cursor = 0
-
-    while True:
-        cursor, keys = await redis_client.scan(cursor=cursor, match="posts:*", count=100)
-
-        if keys:
-            await redis_client.delete(*keys)
-        if cursor == 0:
-            break
-
 def build_redis_key(main_part: str, another_part: List[Any]) -> str:
     another_part_str_valid = ":".join([str(part) for part in another_part if isinstance(part, (str, int))])
 
@@ -68,4 +57,24 @@ def cache_or_db(redis_key: str, serialization_type: BaseModel, build_key: bool =
         
         return inner_2
     return inner_1
+
+def invalidate_cache(redis_main_key_piece: str):
+    def inner_1(func):
+        @wraps(func)
+        async def inner_2(*args, **kwargs):
+            result = await func(*args, **kwargs)
+
+            cursor = 0
+            while True:
+                cursor, keys = await redis_client.scan(cursor=cursor, match=f"{redis_main_key_piece}*", count=100)
+
+                if keys:
+                    await redis_client.delete(*keys)
+
+                if cursor == 0:
+                    break
+                
+            return result
     
+        return inner_2
+    return inner_1

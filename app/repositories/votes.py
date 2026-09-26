@@ -4,7 +4,7 @@ from pydantic import TypeAdapter
 
 from app import models
 from app.schemas import votes
-from app.redis import cache_or_db
+from app.redis import cache_or_db, invalidate_cache
 
 vote_adapter = TypeAdapter(votes.Vote)
 
@@ -21,6 +21,7 @@ class VoteRepository:
         return vote_adapter.validate_python(result)
 
     @staticmethod
+    @invalidate_cache("votes")
     async def create(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote:
         stmt = (
             insert(models.Vote)
@@ -34,6 +35,7 @@ class VoteRepository:
         return vote_adapter.validate_python(result)
 
     @staticmethod
+    @invalidate_cache("votes")
     async def delete(db: AsyncSession, post_id: int, user_id: int) -> None:
         stmt = (
             delete(models.Vote)

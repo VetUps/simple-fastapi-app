@@ -6,7 +6,7 @@ from typing import Any, List
 
 from app import models
 from app.schemas import users, posts
-from app.redis import cache_or_db
+from app.redis import cache_or_db, invalidate_cache
 
 user_response_list_adapter = TypeAdapter(List[users.UserResponse])
 user_response_adapter = TypeAdapter(users.UserResponse)
@@ -73,6 +73,7 @@ class UserRepository:
         return user_response_security_adapter.validate_python(result)
     
     @staticmethod
+    @invalidate_cache("users")
     async def craete(db: AsyncSession, user_data: dict[str, Any]) -> users.UserResponse:
         new_user = models.User(**user_data)
 
@@ -83,6 +84,7 @@ class UserRepository:
         return user_response_adapter.validate_python(new_user)
 
     @staticmethod
+    @invalidate_cache("users")
     async def delete(db: AsyncSession, user_id: int) -> None:
         stmt = (
             delete(models.User)

@@ -5,7 +5,7 @@ from pydantic import TypeAdapter
 from typing import Any, List
 
 from app import models
-from app.redis import cache_or_db
+from app.redis import cache_or_db, invalidate_cache
 from app.schemas import posts
 
 post_with_votes_adapter = TypeAdapter(posts.PostWithVotes)
@@ -74,6 +74,7 @@ class PostRepository:
         return post_with_votes_adapter.validate_python(result)
 
     @staticmethod
+    @invalidate_cache("posts")
     async def create(db: AsyncSession, post_data: dict[str, Any]) -> posts.PostWithUser:
         """
         Создаёт новый пост
@@ -87,6 +88,7 @@ class PostRepository:
         return post_with_user_adapter.validate_python(new_post)
 
     @staticmethod
+    @invalidate_cache("posts")
     async def delete(db: AsyncSession, post_id: int) -> None:
         """
         Удаляет пост
@@ -100,6 +102,7 @@ class PostRepository:
         await db.commit()
 
     @staticmethod
+    @invalidate_cache("posts")
     async def update(db: AsyncSession, post_data: dict[str, Any], post_id: int) -> posts.PostWithUser:
         """
         Обновляет существующий пост
