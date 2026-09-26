@@ -12,50 +12,58 @@ from app import security, oauth2
 class UserService:
     @staticmethod
     async def create_user(db: AsyncSession, user: users.UserCreate):
-        user_data = user.model_dump()
-        existed_user = await UserRepository.get_by_email(db, user.user_email)
+        is_exists = await UserRepository.is_exists_by_email(db, user.user_email)
 
-        if existed_user:
+        if is_exists:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"user with email {user.user_email} already exist")
 
+        user_data = user.model_dump()
         user_data["user_password"] = await security.hash_password(user_data["user_password"])
         new_user = await UserRepository.craete(db, user_data)
+
         return new_user
 
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: int):
-        user = await UserRepository.get_by_id(db, user_id)
+        is_exists = await UserRepository.is_exists(db, user_id)
 
-        if not user:
+        if not is_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")
+
+        user = await UserRepository.get_by_id(db, user_id)
 
         return user
 
     @staticmethod
     async def get_user_by_email(db: AsyncSession, user_email: str):
-        user = await UserRepository.get_by_email(db, user_email)
+        is_exists = await UserRepository.is_exists_by_email(db, user_email)
 
-        if not user:
+        if not is_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_email} was not found")
+
+        user = await UserRepository.get_by_email(db, user_email)
 
         return user   
 
     @staticmethod
     async def get_user_with_posts(db: AsyncSession, user_id: int):
-        user = await UserRepository.get_user_by_id_with_posts(db, user_id)
+        is_exists = await UserRepository.is_exists(db, user_id)
 
-        if not user:
+        if not is_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")
+
+        user = await UserRepository.get_user_by_id_with_posts(db, user_id)
 
         return user
 
     @staticmethod
     async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm):
-        user = await UserRepository.get_by_email_security(db, user_data.username)
-        print(user_data.username)
+        is_exists = await UserRepository.is_exists_by_email(db, user_data.username)
 
-        if not user:
+        if not is_exists:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
+
+        user = await UserRepository.get_by_email_security(db, user_data.username)
 
         if not await security.verify(user_data.password, user.user_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
@@ -75,6 +83,10 @@ class UserService:
 
     @staticmethod
     async def delete_user(db: AsyncSession, user_id: int):
-        await UserService.get_user_by_id(db, user_id)
+        is_exists = await UserRepository.is_exists(db, user_id)
+
+        if not is_exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user with id {user_id} was not found")
+
         await UserRepository.delete(db, user_id)
         

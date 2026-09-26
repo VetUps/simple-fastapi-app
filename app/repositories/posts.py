@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, insert, update, func
+from sqlalchemy import select, delete, insert, update, func, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, joinedload
 from pydantic import TypeAdapter
@@ -38,7 +38,7 @@ class PostRepository:
 
     @staticmethod
     @cache_or_db("posts:by_id", posts.PostWithUser)
-    async def get_by_id(db: AsyncSession, post_id: int) -> posts.PostWithUser | None:
+    async def get_by_id(db: AsyncSession, post_id: int) -> posts.PostWithUser:
         """
         Возвращает пост по post_id
         """
@@ -48,13 +48,13 @@ class PostRepository:
             .options(joinedload(models.Post.user))
             .where(models.Post.post_id == post_id)
         )
-        result = (await db.execute(query)).scalar_one_or_none()
+        result = (await db.execute(query)).scalar_one()
 
-        return post_with_user_adapter.validate_python(result) if result else None
+        return post_with_user_adapter.validate_python(result)
     
     @staticmethod
     @cache_or_db("posts:by_id_with_votes", posts.PostWithVotes)
-    async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> posts.PostWithVotes | None:
+    async def get_by_id_with_votes(db: AsyncSession, post_id: int) -> posts.PostWithVotes:
         """
         Возвращает пост по post_id
         """
@@ -67,10 +67,11 @@ class PostRepository:
             .where(models.Post.post_id == post_id)
             .group_by(models.Post.post_id, models.User.user_id)
         )
-        print(query.compile(compile_kwargs={"literal_binds": True}))
-        result = (await db.execute(query)).one_or_none()
 
-        return post_with_votes_adapter.validate_python(result) if result else None
+        # print(query.compile(compile_kwargs={"literal_binds": True}))
+        result = (await db.execute(query)).one()
+
+        return post_with_votes_adapter.validate_python(result)
 
     @staticmethod
     async def create(db: AsyncSession, post_data: dict[str, Any]) -> posts.PostWithUser:
@@ -81,8 +82,9 @@ class PostRepository:
 
         db.add(new_post)
         await db.commit()
+        await db.refresh(new_post, attribute_names=["user"])
 
-        return await PostRepository.get_by_id(db, new_post.post_id)
+        return post_with_user_adapter.validate_python(new_post)
 
     @staticmethod
     async def delete(db: AsyncSession, post_id: int) -> None:
@@ -111,4 +113,27 @@ class PostRepository:
         await db.execute(stmt)
         await db.commit()
 
-        return await PostRepository.get_by_id(db, post_id)
+        query = (
+            select(models.Post)
+            .where(models.Post.post_id == post_id)
+            .options(joinedload(models.Post.user))
+        )
+
+        result = (await db.execute(query)).scalar_one()
+
+        return post_with_user_adapter.validate_python(result)
+
+    @staticmethod
+    async def is_exists(db: AsyncSession, post_id: int) -> bool:
+        """
+        Проверяет факт существования поста по id
+        """
+        query = select(
+            exists(
+                select(models.Post)
+                .where(models.Post.post_id == post_id)
+            )
+        )
+
+        result = (await db.execute(query)).scalar_one()
+        return result

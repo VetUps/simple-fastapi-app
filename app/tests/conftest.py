@@ -80,7 +80,6 @@ async def login_user(client: AsyncClient) -> TokenCreator:
                 "scope": "read"
             }
 
-        print(user_login_data)
         response = await client.post("/login", data=user_login_data)
         response_data = response.json()
         

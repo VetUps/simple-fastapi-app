@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert, delete
+from sqlalchemy import select, insert, delete, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import TypeAdapter
 
@@ -11,14 +11,14 @@ vote_adapter = TypeAdapter(votes.Vote)
 class VoteRepository:
     @staticmethod
     @cache_or_db("votes:one", votes.Vote)
-    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote | None:
+    async def get_by_user_post_id(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote:
         query = (
             select(models.Vote)
             .where(models.Vote.post_id == post_id, models.Vote.user_id == user_id)
         )
-        result = (await db.execute(query)).scalar_one_or_none()
+        result = (await db.execute(query)).scalar_one()
         
-        return vote_adapter.validate_python(result) if result else None
+        return vote_adapter.validate_python(result)
 
     @staticmethod
     async def create(db: AsyncSession, post_id: int, user_id: int) -> votes.Vote:
@@ -42,3 +42,20 @@ class VoteRepository:
 
         await db.execute(stmt)
         await db.commit()
+
+    @staticmethod
+    async def is_exists(db: AsyncSession, post_id: int, user_id: int) -> bool:
+        """
+        Проверяет факт существования голоса по post_id и user_id
+        """
+        query = select(
+            exists(
+                select(models.Vote)
+                .where(models.Vote.post_id == post_id, models.Vote.user_id == user_id)
+            )
+        )
+
+        result = (await db.execute(query)).scalar_one()
+
+        return result
+    

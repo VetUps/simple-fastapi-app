@@ -12,11 +12,12 @@ class PostService:
 
     @staticmethod
     async def get_post(db: AsyncSession, post_id: int):
-        post = await PostRepository.get_by_id_with_votes(db, post_id)
+        is_post_exists = await PostRepository.is_exists(db, post_id)
 
-        if not post:
+        if not is_post_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
-        
+
+        post = await PostRepository.get_by_id_with_votes(db, post_id)
         return post
 
     @staticmethod
@@ -30,10 +31,12 @@ class PostService:
 
     @staticmethod
     async def delete_post(db: AsyncSession, post_id: int, current_user: users.UserResponse):
-        post_to_delete = await PostRepository.get_by_id(db, post_id)
+        is_post_exists = await PostRepository.is_exists(db, post_id)
 
-        if post_to_delete is None:
+        if not is_post_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
+
+        post_to_delete = await PostRepository.get_by_id(db, post_id)
 
         if post_to_delete.user.user_id != current_user.user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"not authorized to perform requested action")
@@ -42,10 +45,12 @@ class PostService:
 
     @staticmethod
     async def update_post(db: AsyncSession, post_id: int, post: posts.PostUpdate, current_user: users.UserResponse):
-        post_to_update = await PostRepository.get_by_id(db, post_id)
+        is_post_exists = await PostRepository.is_exists(db, post_id)
 
-        if post_to_update is None:
+        if not is_post_exists:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id {post_id} was not found")
+
+        post_to_update = await PostRepository.get_by_id(db, post_id)
 
         if post_to_update.user.user_id != current_user.user_id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"not authorized to perform requested action")

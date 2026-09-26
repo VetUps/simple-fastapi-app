@@ -32,7 +32,6 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
 
 def verify_access_token(token: str, credentials_exception: HTTPException):
     try:
-        print(f"{token}")
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]) # type: ignore
 
         user_id = payload.get("user_id")
