@@ -11,6 +11,6 @@ router = APIRouter(
     tags=["Auth"]
 )
 
-@router.post("/login", response_model=tokens.Token)
+@router.post("/login", response_model=tokens.AccessToken)
 async def login(user: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     return await UserService.auth_user(db, user)

@@ -81,7 +81,7 @@ async def create_user() -> UserCreator:
 
 @pytest.fixture
 async def login_user(client: AsyncClient) -> TokenCreator:
-    async def _login_user(email: str, password: str) -> tokens.Token:
+    async def _login_user(email: str, password: str) -> tokens.AccessToken:
         user_login_data = {
                 "grant_type": "password",
                 "username": email,
@@ -92,7 +92,7 @@ async def login_user(client: AsyncClient) -> TokenCreator:
         response = await client.post("/login", data=user_login_data)
         response_data = response.json()
         
-        return tokens.Token(**response_data)
+        return tokens.AccessToken(**response_data)
     return _login_user
 
 @pytest.fixture

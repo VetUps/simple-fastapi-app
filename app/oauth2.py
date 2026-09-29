@@ -39,7 +39,7 @@ def verify_access_token(token: str, credentials_exception: HTTPException):
 
         if user_id is None or user_email is None:
             raise credentials_exception
-        token_data = tokens.TokenData(**payload)
+        token_data = tokens.AccessTokenData(**payload)
 
         return token_data
     except InvalidTokenError:
