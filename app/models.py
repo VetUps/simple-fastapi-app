@@ -48,3 +48,12 @@ class Post(Base):
 
     user: Mapped[User] = relationship("User", back_populates="posts")
     votes: Mapped[List[Vote]] = relationship("Vote")
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    token_id: Mapped[intpk]
+    token_hash: Mapped[str]
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
+    expires_at: Mapped[datetime]
+    is_revoked: Mapped[bool] = mapped_column(server_default=text("false"))

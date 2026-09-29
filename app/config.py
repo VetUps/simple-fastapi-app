@@ -6,8 +6,10 @@ class Settings(BaseSettings):
         env_file="./.env"
     )
 
-    SECRET_KEY: str
+    ACCESS_TOKEN_SECRET: str
+    REFRESH_TOKEN_SECRET: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 10080
     ALGORITHM: str
 
     DATABASE_URL: PostgresDsn
