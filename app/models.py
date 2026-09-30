@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql.expression import text
 from sqlalchemy import ForeignKey, Enum
@@ -17,6 +18,10 @@ class Base(DeclarativeBase):
 class UserRole(enum.Enum):
     ADIM = "admin"
     USER = "user"
+
+class RevokeReason(enum.Enum):
+    ROTATED = "rotated"
+    LOGOUT = "logout"
 
 class User(Base):
     __tablename__ = "users"
@@ -57,6 +62,7 @@ class RefreshToken(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
     expires_at: Mapped[datetime]
     is_revoked: Mapped[bool] = mapped_column(server_default=text("false"))
+    revoke_reason: Mapped[RevokeReason | None] = mapped_column(Enum(RevokeReason, name="revoke_reason_enum"))
 
     user: Mapped[User] = relationship("User")
     
