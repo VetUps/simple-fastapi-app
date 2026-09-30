@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column
 from sqlalchemy.sql.expression import text
-from sqlalchemy import ForeignKey, Enum
+from sqlalchemy import TIMESTAMP, ForeignKey, Enum
 
 from typing import Annotated, List
 from datetime import datetime
 
-from enums import UserRole, RevokeReason
+from app.enums import UserRole, RevokeReason
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime, mapped_column(server_default=text("now()"))]
@@ -53,7 +53,7 @@ class RefreshToken(Base):
     token_id: Mapped[intpk]
     token_hash: Mapped[str] = mapped_column(unique=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
-    expires_at: Mapped[datetime]
+    expires_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True))
     is_revoked: Mapped[bool] = mapped_column(server_default=text("false"))
     revoke_reason: Mapped[RevokeReason | None] = mapped_column(Enum(RevokeReason, name="revoke_reason_enum"))
 

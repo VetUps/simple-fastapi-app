@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import datetime
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import Any
 
 import jwt
@@ -15,15 +15,15 @@ from app.config import settings
 from app.services.users import UserService
 
 
-ouath2_schema = OAuth2PasswordBearer(tokenUrl="login")
+ouath2_schema = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None):
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.datetime.now() + expires_delta
+        expire = datetime.datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.datetime.now() + timedelta(minutes=15)
+        expire = datetime.datetime.now(timezone.utc) + timedelta(minutes=15)
 
     to_encode.update(
         {
@@ -37,9 +37,9 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
 
 def create_refresh_token(expires_delta: timedelta | None = None):
     if expires_delta:
-        expire = datetime.datetime.now() + expires_delta
+        expire = datetime.datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.datetime.now() + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.datetime.now(timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
 
     to_encode = {
         "exp": expire,
@@ -57,11 +57,13 @@ def verify_access_token(access_token: str):
     )
 
     try:
-        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]) # type: ignore
+        payload = jwt.decode(access_token, settings.ACCESS_TOKEN_SECRET, algorithms=[settings.ALGORITHM]) # type: ignore
 
         user_id = payload.get("user_id")
         user_email = payload.get("user_email")
         token_type = payload.get("type")
+
+        print(payload.get("exp"))
 
         if token_type != "access":
             raise exception
@@ -69,6 +71,8 @@ def verify_access_token(access_token: str):
         if user_id is None or user_email is None:
             raise exception
         token_data = tokens.AccessTokenData(**payload)
+
+        print(token_data.model_dump())
 
         return token_data
     except InvalidTokenError:

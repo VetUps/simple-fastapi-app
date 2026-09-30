@@ -73,6 +73,9 @@ class UserService:
     @staticmethod
     async def refresh_user_tokens(db: AsyncSession, refresh_token: str) -> tuple[str, str]:
         real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
+        if real_refresh_token.revoke_reason == RevokeReason.USER_LOGOUT:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+
         await RefreshTokenRepository.revoke(db, real_refresh_token.token_id, RevokeReason.ROTATED)
 
         user = real_refresh_token.user
@@ -81,6 +84,9 @@ class UserService:
     @staticmethod
     async def logout_user(db: AsyncSession, refresh_token: str):
         real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
+        if real_refresh_token.revoke_reason == RevokeReason.USER_LOGOUT:
+            return
+        
         await RefreshTokenRepository.revoke(db, real_refresh_token.token_id, RevokeReason.USER_LOGOUT)
 
     @staticmethod
@@ -88,7 +94,7 @@ class UserService:
         is_exists = await UserRepository.is_exists(db, user_id)
 
         if not is_exists:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user with id {user_id} was not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"user with id {user_id} was not found")
 
         await UserRepository.delete(db, user_id)
 
@@ -121,12 +127,13 @@ class UserService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
 
 
-        if real_refresh_token.is_revoked and real_refresh_token.revoke_reason != RevokeReason.ROTATED:
-            await RefreshTokenRepository.revoke_tokens_by_user_id(db, real_refresh_token.user_id, RevokeReason.FORCE_LOGOUT)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+        if real_refresh_token.is_revoked:
+            if real_refresh_token.revoke_reason == RevokeReason.ROTATED:
+                await RefreshTokenRepository.revoke_tokens_by_user_id(db, real_refresh_token.user_id, RevokeReason.FORCE_LOGOUT)
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
 
-        if real_refresh_token.is_revoked and real_refresh_token.revoke_reason != RevokeReason.FORCE_LOGOUT:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+            if real_refresh_token.revoke_reason == RevokeReason.FORCE_LOGOUT:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
         
         return real_refresh_token
     

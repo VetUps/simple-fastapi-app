@@ -9,7 +9,8 @@ from app.schemas import tokens
 from app.config import settings
 
 router = APIRouter(
-    tags=["Auth"]
+    tags=["Auth"],
+    prefix="/auth"
 )
 
 @router.post("/login", response_model=tokens.AccessToken)
@@ -24,7 +25,7 @@ async def login(response: Response, user: OAuth2PasswordRequestForm = Depends(),
         secure=False, # передача только по HTTPS
         samesite="lax", # защита от CSRF-атак
         max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60, # время жизни в секундах
-        path="/refresh" # на какой адрес бразуер будет прикреплять эту куку
+        path="/auth/" # на какой адрес бразуер будет прикреплять эту куку
     )
 
     return {
@@ -33,8 +34,31 @@ async def login(response: Response, user: OAuth2PasswordRequestForm = Depends(),
     }
 
 @router.post("/refresh", response_model=tokens.AccessToken)
-async def refresh(response: Response, refresh_token: Annotated[str | None, Cookie()] = None):
+async def refresh(response: Response, refresh_token: Annotated[str | None, Cookie()] = None, db: AsyncSession = Depends(get_db)):
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
 
+    access_token, refresh_token = await UserService.refresh_user_tokens(db, refresh_token)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+        path="/auth/"
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "Bearer"
+    }
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(refresh_token: Annotated[str | None, Cookie()] = None, db: AsyncSession = Depends(get_db)):
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+
+    await UserService.logout_user(db, refresh_token)
     

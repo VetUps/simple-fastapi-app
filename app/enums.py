@@ -5,6 +5,6 @@ class UserRole(enum.Enum):
     USER = "user"
 
 class RevokeReason(enum.Enum):
-    ROTATED = "rotated"
-    USER_LOGOUT = "user_logout"
-    FORCE_LOGOUT = "force_logout"
+    ROTATED = "ROTATED"
+    USER_LOGOUT = "USER_LOGOUT"
+    FORCE_LOGOUT = "FORCE_LOGOUT"
