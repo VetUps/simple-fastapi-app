@@ -6,7 +6,8 @@ from sqlalchemy import ForeignKey, Enum
 
 from typing import Annotated, List
 from datetime import datetime
-import enum
+
+from enums import UserRole, RevokeReason
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime, mapped_column(server_default=text("now()"))]
@@ -14,14 +15,6 @@ updated_at = Annotated[datetime, mapped_column(server_default=text("now()"), onu
 
 class Base(DeclarativeBase):
     pass
-
-class UserRole(enum.Enum):
-    ADIM = "admin"
-    USER = "user"
-
-class RevokeReason(enum.Enum):
-    ROTATED = "rotated"
-    LOGOUT = "logout"
 
 class User(Base):
     __tablename__ = "users"

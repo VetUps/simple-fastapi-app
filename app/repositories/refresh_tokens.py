@@ -6,6 +6,7 @@ from datetime import datetime
 
 from app import models
 from app.schemas import tokens
+from app.enums import RevokeReason
 
 refresh_token_adapter = TypeAdapter(tokens.RefreshToken)
 refresh_token_with_user_adapter = TypeAdapter(tokens.RefreshTokenWithUser)
@@ -33,22 +34,22 @@ class RefreshTokenRepository:
         return refresh_token_adapter.validate_python(new_token)
 
     @staticmethod
-    async def revoke(db: AsyncSession, token_id: int):
+    async def revoke(db: AsyncSession, token_id: int, revoke_reason: RevokeReason):
         stmt = (
             update(models.RefreshToken)
             .where(models.RefreshToken.token_id == token_id)
-            .values(is_revoked=True)
+            .values(is_revoked=True, revoke_reason=revoke_reason.value)
         )
 
         await db.execute(stmt)
         await db.commit()
 
     @staticmethod
-    async def revoke_tokens_by_user_id(db: AsyncSession, user_id: int):
+    async def revoke_tokens_by_user_id(db: AsyncSession, user_id: int, revoke_reason: RevokeReason):
         stmt = (
             update(models.RefreshToken)
-            .where(models.RefreshToken.user_id == user_id)
-            .values(is_revoked=True)
+            .where(models.RefreshToken.user_id == user_id, models.RefreshToken.revoke_reason != None)
+            .values(is_revoked=True, revoke_reason=revoke_reason)
         )
 
         await db.execute(stmt)

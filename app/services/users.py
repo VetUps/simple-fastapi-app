@@ -2,12 +2,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
-import hashlib
 
 from app.repositories.users import UserRepository
 from app.repositories.refresh_tokens import RefreshTokenRepository
 from app.schemas import users, tokens
 from app.config import settings
+from app.enums import RevokeReason
 from app import security, oauth2
 
 
@@ -73,7 +73,7 @@ class UserService:
     @staticmethod
     async def refresh_user_tokens(db: AsyncSession, refresh_token: str) -> tuple[str, str]:
         real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
-        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id)
+        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id, RevokeReason.ROTATED)
 
         user = real_refresh_token.user
         return await UserService._issue_token_pair(db, user.user_id, user.user_email)
@@ -81,7 +81,7 @@ class UserService:
     @staticmethod
     async def logout_user(db: AsyncSession, refresh_token: str):
         real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
-        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id)
+        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id, RevokeReason.USER_LOGOUT)
 
     @staticmethod
     async def delete_user(db: AsyncSession, user_id: int):
@@ -121,9 +121,12 @@ class UserService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
 
 
-        if real_refresh_token.is_revoked:
-            await RefreshTokenRepository.revoke_tokens_by_user_id(db, real_refresh_token.user_id)
+        if real_refresh_token.is_revoked and real_refresh_token.revoke_reason != RevokeReason.ROTATED:
+            await RefreshTokenRepository.revoke_tokens_by_user_id(db, real_refresh_token.user_id, RevokeReason.FORCE_LOGOUT)
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
 
+        if real_refresh_token.is_revoked and real_refresh_token.revoke_reason != RevokeReason.FORCE_LOGOUT:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+        
         return real_refresh_token
     
