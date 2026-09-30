@@ -63,14 +63,14 @@ class UserRepository:
         return user_response_adapter.validate_python(result)
 
     @staticmethod
-    async def get_by_email_security(db: AsyncSession, user_email: str) -> users.UserResponseSecurity:
+    async def get_by_email_security(db: AsyncSession, user_email: str) -> users.UserResponseSecurity | None:
         query = (
             select(models.User)
             .where(models.User.user_email == user_email)
         )
 
-        result = (await db.execute(query)).scalar_one()
-        return user_response_security_adapter.validate_python(result)
+        result = (await db.execute(query)).scalar_one_or_none()
+        return user_response_security_adapter.validate_python(result) if result else None
     
     @staticmethod
     @invalidate_cache("users")

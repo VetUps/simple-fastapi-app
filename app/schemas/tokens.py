@@ -1,5 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
+
+from schemas import users
 
 class AccessToken(BaseModel):
     access_token: str
@@ -15,4 +17,9 @@ class RefreshToken(BaseModel):
     user_id: int
     expires_at: datetime
     is_revoked: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+class RefreshTokenWithUser(RefreshToken):
+    user: users.UserResponse
     

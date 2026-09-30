@@ -2,9 +2,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
+import hashlib
 
 from app.repositories.users import UserRepository
-from app.schemas import users
+from app.repositories.refresh_tokens import RefreshTokenRepository
+from app.schemas import users, tokens
 from app.config import settings
 from app import security, oauth2
 
@@ -57,29 +59,29 @@ class UserService:
         return user
 
     @staticmethod
-    async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm):
-        is_exists = await UserRepository.is_exists_by_email(db, user_data.username)
-
-        if not is_exists:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
-
+    async def auth_user(db: AsyncSession, user_data: OAuth2PasswordRequestForm) -> tuple[str, str]:
         user = await UserRepository.get_by_email_security(db, user_data.username)
+
+        if user is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 
         if not await security.verify(user_data.password, user.user_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 
-        token = oauth2.create_access_token(
-            data={
-                "user_id": user.user_id,
-                "user_email": user.user_email
-                },
-            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        )
+        return await UserService._issue_token_pair(db, user.user_id, user.user_email)
 
-        return {
-            "access_token": token,
-            "token_type": "Bearer"
-        }
+    @staticmethod
+    async def refresh_user_tokens(db: AsyncSession, refresh_token: str) -> tuple[str, str]:
+        real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
+        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id)
+
+        user = real_refresh_token.user
+        return await UserService._issue_token_pair(db, user.user_id, user.user_email)
+
+    @staticmethod
+    async def logout_user(db: AsyncSession, refresh_token: str):
+        real_refresh_token = await UserService._validate_refresh_token(db, refresh_token)
+        await RefreshTokenRepository.revoke(db, real_refresh_token.token_id)
 
     @staticmethod
     async def delete_user(db: AsyncSession, user_id: int):
@@ -89,4 +91,39 @@ class UserService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user with id {user_id} was not found")
 
         await UserRepository.delete(db, user_id)
-        
+
+    @staticmethod
+    async def _issue_token_pair(db: AsyncSession, user_id: int, user_email: str) -> tuple[str, str]:
+        access_token = oauth2.create_access_token(
+            data={
+                "user_id": user_id,
+                "user_email": user_email
+                },
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+
+        refresh_token, expire_at = oauth2.create_refresh_token(
+            expires_delta=timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+        )
+        refresh_token_hash = security.hash_refresh_token(refresh_token)
+        await RefreshTokenRepository.create(db, refresh_token_hash, user_id, expire_at)
+
+        return access_token, refresh_token
+
+    @staticmethod
+    async def _validate_refresh_token(db: AsyncSession, refresh_token: str) -> tokens.RefreshTokenWithUser:
+        oauth2.verify_refresh_token(refresh_token)
+
+        refresh_token_hash = security.hash_refresh_token(refresh_token)
+        real_refresh_token = await RefreshTokenRepository.get_by_hash(db, refresh_token_hash)
+
+        if real_refresh_token is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+
+
+        if real_refresh_token.is_revoked:
+            await RefreshTokenRepository.revoke_tokens_by_user_id(db, real_refresh_token.user_id)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="The provided refresh token is invalid, expired, or revoked.")
+
+        return real_refresh_token
+    
