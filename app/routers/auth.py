@@ -7,13 +7,14 @@ from app.database import get_db
 from app.services.users import UserService
 from app.schemas import tokens
 from app.config import settings
+from app.utils import rate_limit
 
 router = APIRouter(
     tags=["Auth"],
     prefix="/auth"
 )
 
-@router.post("/login", response_model=tokens.AccessToken)
+@router.post("/login", response_model=tokens.AccessToken, dependencies=[Depends(rate_limit(5, 60))])
 async def login(response: Response, user: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     access_token, refresh_token = await UserService.auth_user(db, user)
 
@@ -33,7 +34,7 @@ async def login(response: Response, user: OAuth2PasswordRequestForm = Depends(),
         "token_type": "Bearer"
     }
 
-@router.post("/refresh", response_model=tokens.AccessToken)
+@router.post("/refresh", response_model=tokens.AccessToken, dependencies=[Depends(rate_limit(5, 60))])
 async def refresh(response: Response, refresh_token: Annotated[str | None, Cookie()] = None, db: AsyncSession = Depends(get_db)):
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
@@ -55,10 +56,9 @@ async def refresh(response: Response, refresh_token: Annotated[str | None, Cooki
         "token_type": "Bearer"
     }
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(rate_limit(5, 60))])
 async def logout(refresh_token: Annotated[str | None, Cookie()] = None, db: AsyncSession = Depends(get_db)):
     if not refresh_token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
 
     await UserService.logout_user(db, refresh_token)
-    
